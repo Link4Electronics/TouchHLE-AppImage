@@ -20,6 +20,12 @@ wget --retry-connrefused --tries=30 "$SHARUN" -O ./quick-sharun
 chmod +x ./quick-sharun
 ./quick-sharun /usr/bin/touchHLE
 
+# share/touchhle/fonts contains symlinks to /usr/share/fonts instead of the real thing
+for L in $(find ./AppDir/share/touchhle/fonts -type l); do
+	rm -f "$L"
+	cp -v "$L" ./AppDir/share/touchhle/fonts
+done
+
 # MAKE APPIMAGE WITH URUNTIME
 wget --retry-connrefused --tries=30 "$URUNTIME" -O ./uruntime2appimage
 chmod +x ./uruntime2appimage
