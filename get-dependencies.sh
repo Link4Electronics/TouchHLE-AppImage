@@ -46,4 +46,11 @@ git clone --depth 1 https://aur.archlinux.org/touchhle.git ./touchhle
 	pacman --noconfirm -U ./*.pkg.tar.*
 )
 
+# share/touchhle/fonts contains symlinks to /usr/share/fonts instead of the real thing
+for L in $(find /usr/share/touchhle/fonts -type l); do
+	linkpath=$(readlink "$L")
+	rm -f "$L"
+	cp -v "$linkpath" /usr/share/touchhle/fonts
+done
+
 pacman -Q touchhle | awk '{print $2; exit}' > ~/version
