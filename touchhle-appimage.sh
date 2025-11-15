@@ -19,7 +19,7 @@ export DEPLOY_PULSE=1
 # ADD LIBRARIES
 wget --retry-connrefused --tries=30 "$SHARUN" -O ./quick-sharun
 chmod +x ./quick-sharun
-./quick-sharun /usr/bin/touchHLE
+./quick-sharun /usr/bin/touchHLE /usr/share/touchhle
 
 mkdir -p ./dist
 mv -v ./*.AppImage* ./dist
