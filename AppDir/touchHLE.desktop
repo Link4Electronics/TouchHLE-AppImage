@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=touchHLE
+Icon=icon
+Exec=touchHLE
+Categories=Game;Emulator
+StartupWMClass=touchHLE

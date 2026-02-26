@@ -2,35 +2,53 @@
 
 set -eu
 
-EXTRA_PACKAGES="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/get-debloated-pkgs.sh"
-PACKAGE_BUILDER="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/make-aur-package.sh"
+ARCH=$(uname -m)
 
-echo "Installing build dependencies..."
+echo "Installing package dependencies..."
 echo "---------------------------------------------------------------"
 pacman -Syu --noconfirm \
-	android-tools     \
-	base-devel        \
-	curl              \
-	git               \
-	libx11            \
-	libxrandr         \
-	libxss            \
-	pulseaudio        \
-	pulseaudio-alsa   \
-	wget              \
-	xorg-server-xvfb  \
-	zsync
+	boost	 \
+	cargo	 \
+	cmake	 \
+	libdecor \
+	openal   \
+	rustup	 \
+	sdl2
 
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"
-wget --retry-connrefused --tries=30 "$EXTRA_PACKAGES" -O ./get-debloated-pkgs.sh
-chmod +x ./get-debloated-pkgs.sh
-./get-debloated-pkgs.sh --add-opengl --prefer-nano opus-mini
+get-debloated-pkgs --add-common --prefer-nano ! llvm
 
-echo "Building touchhle..."
+# Comment this out if you need an AUR package
+#make-aur-package PACKAGENAME
+
+# If the application needs to be manually built that has to be done down here
+echo "Making stable build of touchHLE..."
 echo "---------------------------------------------------------------"
-wget --retry-connrefused --tries=30 "$PACKAGE_BUILDER" -O ./make-aur-package.sh
-chmod +x ./make-aur-package.sh
-./make-aur-package.sh touchhle
+REPO="https://github.com/touchHLE/touchHLE"
+VERSION=$(git ls-remote --tags --refs --sort='v:refname' "$REPO" | tail -n1 | cut -d/ -f3)
+git clone --branch "$VERSION" --single-branch --recursive --depth 1 "$REPO" ./touchHLE
+echo "$VERSION" > ~/version
 
-pacman -Q touchhle | awk '{print $2; exit}' > ~/version
+mkdir -p ./AppDir/bin
+cd ./touchHLE
+patch -Np1 -i ../touchhle_cargo_system_sdl2.patch
+rustup default stable
+cat << 'EOF' > ./cmake_wrapper
+#!/bin/sh
+if [ "$1" = "--build" ]; then
+    /usr/bin/cmake "$@"
+else
+    /usr/bin/cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "$@"
+fi
+EOF
+chmod +x ./cmake_wrapper
+export CMAKE="$(pwd)/cmake_wrapper"
+export SDL2_CONFIG_PATH=/usr/bin/sdl2-config
+cargo build --release --no-default-features
+mv -v target/release/touchHLE ../AppDir/bin
+mv -v touchHLE_default_options.txt ../AppDir/bin/options.txt
+find touchHLE_fonts -maxdepth 1 -type f \( -name "LICENSE.*" -o -name "README.md" \) -delete
+find touchHLE_dylibs -maxdepth 1 -type f \( -name "COPYING.*" -o -name "README.md" \) -delete
+mv -v touchHLE_fonts ../AppDir/bin
+mv -v touchHLE_dylibs ../AppDir/bin
